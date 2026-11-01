@@ -1,0 +1,63 @@
+package walcodec // import "walcodec"
+
+Package walcodec encodes WAL records as versioned frames. A frame is a
+big-endian uint32 body length, a type byte and payload, then a big-endian
+CRC32-IEEE of the type and payload. Each body is limited to 16 MiB. Version
+1 contains Put and Delete; version 2 also contains Batch. A Batch contains a
+uint32 count followed by exactly that many complete frames, with no trailing
+bytes. Its nested stream is limited to eight levels (top level is depth zero).
+Decode accepts versions 1 and 2 and returns bare ErrCorrupt with nil records for
+malformed input.
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt indicates an invalid or unsupported WAL stream or record.
+
+
+FUNCTIONS
+
+func Encode(records []Record) ([]byte, error)
+    Encode returns a version-2 stream. Frame lengths exclude the trailing CRC;
+    Put and Delete payloads use big-endian uint32 lengths followed by bytes.
+    Frames use CRC32-IEEE checksums and each body is limited to 16 MiB.
+    It rejects nil, pointer, and foreign record implementations with errors
+    distinct from ErrCorrupt. Excessive nesting returns an error matching
+    ErrCorrupt. Any error returns nil bytes.
+
+
+TYPES
+
+type Batch struct{ Records []Record }
+    Batch groups records in a nested framed stream. At most eight Batch levels
+    are permitted; recursive or cyclic values are rejected by Encode's depth
+    limit. Decode converts nil or empty Records to a non-nil empty slice.
+
+func (Batch) Kind() uint8
+    Kind returns the Batch record kind (3).
+
+type Delete struct{ Key string }
+    Delete removes Key.
+
+func (Delete) Kind() uint8
+    Kind returns the Delete record kind (2).
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put stores Value at Key.
+
+func (Put) Kind() uint8
+    Kind returns the Put record kind (1).
+
+type Record interface{ Kind() uint8 }
+    Record is a WAL operation. Supported values are Put, Delete, and Batch.
+
+func Decode(data []byte) ([]Record, error)
+    Decode accepts version 1 Put/Delete streams and version 2 streams with
+    nested Batches; version 1 rejects Batch. Malformed input always returns
+    nil records and bare ErrCorrupt. Batch payloads must contain exactly their
+    declared frames. Empty Put values decode as non-nil empty slices; record
+    ordering and duplicates are preserved.
+

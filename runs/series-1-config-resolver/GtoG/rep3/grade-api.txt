@@ -1,0 +1,50 @@
+package config // import "config"
+
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("invalid log level")
+    ErrInvalidLogLevel is returned when the effective LogLevel is not a legal
+    value.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration after layer resolution.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines defaults, file, env, and flags in increasing precedence.
+
+    A key present in a map sets that field, including zero values (false,
+    0, ""). A key absent from a map leaves the field unchanged. A nil map
+    is all-absent. If no layer presents a field, the effective value is that
+    field's Go zero value.
+
+    Legal keys are "Verbose", "MaxRetries", "LogLevel", and "TimeoutSec".
+    A present value of the wrong Go type panics, including when a higher
+    layer later overrides that field, including an untyped nil, and including
+    a named type whose underlying type matches (type myInt int is not int).
+    The panic names the key, the expected type, and the dynamic type (%T only).
+    Unknown keys are ignored in v1 (see noteUnknownKey). That choice lives in
+    noteUnknownKey and can be flipped without touching the merge walk.
+
+    Only the effective LogLevel is validated, against "", "debug", "info",
+    "warn", and "error", case-sensitively. A presented level that a higher
+    layer overrides is never validated. Verbose, MaxRetries, and TimeoutSec
+    are not validated. The LogLevel check is independent of any other field
+    validator: an illegal effective LogLevel always yields an error for which
+    errors.Is(err, ErrInvalidLogLevel) is true, even if another field is also
+    invalid.
+
+    When err != nil, the returned Config is unspecified. Callers must not read
+    it. This version returns the merged struct (not a zeroed Config); that is an
+    implementation detail, not a contract. The error wraps ErrInvalidLogLevel.
+
+    Resolve only reads the maps. Callers must not mutate them during the call.
+

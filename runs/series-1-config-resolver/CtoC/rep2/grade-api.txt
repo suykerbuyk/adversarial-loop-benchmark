@@ -1,0 +1,45 @@
+package config // import "config"
+
+Package config computes an effective configuration by combining ordered layers
+of in-memory values. A higher-precedence layer overrides a lower one.
+
+The package performs no I/O: it never reads the environment, files, or the
+command line. Layer names (defaults, file, env, flags) denote precedence only.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("invalid log level")
+    ErrInvalidLogLevel is wrapped by the error Resolve returns when the
+    effective LogLevel is not one of "debug", "info", "warn", "error", or "".
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration produced by Resolve.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines the layers in increasing precedence order (defaults < file
+    < env < flags) and returns the effective Config.
+
+    A key present in a layer sets the corresponding field, even when its value
+    is a zero value (false, 0, ""). An absent key has no effect, so the value
+    from a lower layer shows through. A field no layer presents keeps its Go
+    zero value. A nil map is an empty layer.
+
+    Only the effective LogLevel is validated; if it is invalid, Resolve returns
+    the zero Config and an error wrapping ErrInvalidLogLevel.
+
+    Resolve panics if any layer contains a key that is not a Config field name,
+    or a value whose dynamic type is not exactly the field's Go type (including
+    nil, int64, float64, and named types such as `type myInt int`). These are
+    programmer errors. Every layer is type-checked, even when overridden.
+
+    Resolve never mutates or retains the input maps and is safe for concurrent
+    use.
+

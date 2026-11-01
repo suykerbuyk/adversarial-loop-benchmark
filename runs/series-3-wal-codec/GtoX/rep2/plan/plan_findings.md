@@ -1,0 +1,3 @@
+minor: The plan points implementors to `spec/walcodec-v1-cell-facing.md`, but that path does not exist in this worktree; the provided governing v1 spec is `spec-v1.md`. Correct the reference so future maintainers can actually locate the inherited rules.
+minor: Batch encoding is specified to build the complete inner stream before checking whether the enclosing Batch frame exceeds the 16 MiB cap. A very large `Records` slice can therefore allocate and copy far more than the maximum representable Batch payload before `Encode` rejects it; track cumulative encoded size while walking records and fail as soon as the parent payload cannot fit.
+No blocker or major issue remains.

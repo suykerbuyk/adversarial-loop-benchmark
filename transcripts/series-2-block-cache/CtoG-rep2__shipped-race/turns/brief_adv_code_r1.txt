@@ -1,0 +1,6 @@
+ROLE: adversarial reviewer. Read the task spec at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-blockcache/CtoG/rep2/spec.md, the public tests at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-blockcache/CtoG/rep2/instrument/resolve_public_test.go, the
+implementor's code in /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-blockcache/CtoG/rep2/worktree, and any prior rebuttal at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-blockcache/CtoG/rep2/code_rebuttal.md. Build and test it
+yourself; re-derive every claim from source. Find defects, missing cases, race or resource issues,
+weak error handling, and maintainability/extensibility problems. Tag every finding exactly one of:
+blocker, major, minor, nit. Write the findings to /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-blockcache/CtoG/rep2/code_findings.md, one per line with its tag. If no
+blocker or major issue remains, state that explicitly.

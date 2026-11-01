@@ -1,0 +1,28 @@
+package config // import "config"
+
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is returned when the effective LogLevel is not one of
+    "debug", "info", "warn", "error", or "".
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the resolved configuration. Unpresented fields keep the Go zero
+    value.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines four layers in ascending precedence: defaults, file, env,
+    flags. A key present in a layer sets that field, including zero values
+    (false, 0, ""). A key absent from a layer leaves the field unchanged.
+    A present value of the wrong Go type panics. An unknown key panics. Only the
+    effective LogLevel is validated.
+

@@ -1,0 +1,2 @@
+minor — The extension story for additional layers is underspecified against the fixed API: `Resolve` accepts exactly four maps, while §5 says adding a layer means adding a parameter or a new entry point and §2 says the signature stays fixed. The merge loop itself generalizes, but callers cannot supply a fifth layer without an explicit alternate API or a change to the fixed signature; document which path is intended.
+No blocker or major issue remains.

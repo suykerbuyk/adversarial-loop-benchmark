@@ -1,0 +1,2 @@
+minor: The field descriptor design duplicates field metadata: `fieldID` is included but the `apply` callbacks already encode the target field, and the IDs are never used by the proposed merge path. Adding a field still requires updating `Config`, the ID list, an apply function, and the descriptor row, so the plan's “one row” extension-point claim is inaccurate. Drop the unused IDs and describe the actual maintenance steps, or use a design where the descriptor is the single source of truth.
+nit: No blocker or major issue remains.

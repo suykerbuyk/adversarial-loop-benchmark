@@ -1,0 +1,6 @@
+No blocker or major issue remains.
+minor: The plan offers two resolution strategies (typed intermediate with presence bits, or per-field scans) without picking one, so years of added fields and layers can fork into inconsistent precedence and validation paths.
+minor: Type checks are specified only as "exact Go type" (`bool`, `int`, `string`). JSON-decoded layers commonly present numbers as `float64` and sometimes `json.Number`; the plan does not say whether those must panic or how future loaders should convert before `Resolve`.
+minor: Unknown keys are declared out of domain and ignored, but the spec's "only legal keys" rule does not say whether an illegal key is a programmer error. Silent ignore makes a typo (`Loglevel`, `MaxRetry`) indistinguishable from absence and will be hard to diagnose as fields grow.
+nit: The plan does not pin the panic value or message, so callers cannot reliably recover a typed programmer error and tests can only use a bare `recover`.
+nit: Extra tests cover nil layers, masked invalid log levels, and per-field type panics, but not a higher layer presenting the wrong type over a valid lower value (the plan requires that panic) or an invalid effective log level that is the zero string's opposite case such as `"WARN"` / `"Debug"`.

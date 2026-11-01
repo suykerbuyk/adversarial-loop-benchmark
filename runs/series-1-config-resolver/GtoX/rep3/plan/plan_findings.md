@@ -1,0 +1,2 @@
+minor: Type checking is underspecified and internally inconsistent: the registry example's `apply` closures use bare type assertions, which panic without the promised key/expected/actual-type diagnostic, while the algorithm later requires that diagnostic and says checks may live inside `apply` or in a shared helper. Specify one mechanism that emits the required diagnostic on mismatch; otherwise the implementation can satisfy panic semantics but lose the plan's stated programmer-error clarity.
+No blocker or major issue remains based on the supplied spec and public tests.

@@ -1,0 +1,25 @@
+package config // import "config"
+
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("invalid log level")
+    ErrInvalidLogLevel indicates that the effective log level is unsupported.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration produced by Resolve.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines configuration layers from lowest to highest precedence.
+    A present field replaces the value from lower-precedence layers, including
+    when its value is the Go zero value. A present value with the wrong type
+    panics because it indicates a caller programming error.
+

@@ -1,0 +1,47 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is returned when an encoded stream is malformed.
+
+
+FUNCTIONS
+
+func Encode(records []Record) ([]byte, error)
+    Encode serializes records into a version 2 WAL stream.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch groups records into a nested framed sub-stream.
+
+func (Batch) Kind() uint8
+
+type Delete struct {
+	Key string
+}
+    Delete removes a key.
+
+func (Delete) Kind() uint8
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put stores a value under a key.
+
+func (Put) Kind() uint8
+
+type Record interface {
+	Kind() uint8
+}
+    Record is a record that can be stored in a WAL stream.
+
+func Decode(data []byte) ([]Record, error)
+    Decode parses a version 1 or version 2 WAL stream.
+

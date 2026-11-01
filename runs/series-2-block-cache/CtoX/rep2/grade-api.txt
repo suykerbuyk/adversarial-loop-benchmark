@@ -1,0 +1,49 @@
+package blockcache // import "blockcache"
+
+Package blockcache provides a bounded, concurrent, single-flight block cache in
+front of a slow backing store.
+
+VARIABLES
+
+var ErrClosed = errors.New("blockcache: closed")
+    ErrClosed is returned by Get once the cache has been closed.
+
+
+TYPES
+
+type Cache interface {
+	// Get returns a COPY of the block for key, loading on a miss. Concurrent
+	// Gets for the same absent key cause exactly one Loader call; all receive
+	// its result. On error the returned bytes are nil. A waiting Get returns,
+	// in priority: ErrClosed if the cache closes; else ctx.Err() if ctx is
+	// Done while the load is still in flight; else the load's result.
+	Get(ctx context.Context, key string) ([]byte, error)
+	// Len is the number of resident entries. Resident-only; it may lag a
+	// completion by one critical section and is never above capacity.
+	Len() int
+	// Close cancels in-flight loads, waits for their Loader calls to return,
+	// wakes every waiter with ErrClosed, drops all entries, and returns nil.
+	// Idempotent; a concurrent second Close waits for the same join. Close
+	// must not be called from inside a Loader of the same cache.
+	Close() error
+}
+    Cache is a bounded LRU cache of byte blocks with single-flight loading.
+
+func New(capacity int, load Loader) Cache
+    New returns a Cache holding at most capacity entries. It panics if capacity
+    < 1 or load == nil.
+
+type Loader func(ctx context.Context, key string) ([]byte, error)
+    Loader fetches the block for key. The cache calls it at most once per
+    in-flight miss for a key (single-flight). It is given a cache-scoped
+    context, not any single caller's. A Loader MUST return promptly when its ctx
+    is Done.
+
+    A Loader may call Get (for other keys) and Len on the cache it serves.
+    It must not call Close on that cache, directly or by blocking on a goroutine
+    that does: Close waits for every in-flight Loader call to return, so such a
+    Loader never returns promptly after its ctx is Done.
+
+    A Loader must not panic. A panic is not recovered by the cache and
+    terminates the program like any other unrecovered goroutine panic.
+

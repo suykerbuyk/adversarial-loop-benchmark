@@ -1,0 +1,35 @@
+package config // import "config"
+
+Package config resolves configuration values from ordered in-memory layers.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is returned when the effective log level is unsupported.
+
+var ErrUnsupportedKey = errors.New("config: unsupported key")
+    ErrUnsupportedKey appears only in recovered panic values for unsupported
+    keys.
+
+var ErrWrongType = errors.New("config: wrong value type")
+    ErrWrongType appears only in recovered panic values for wrongly typed
+    values.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config contains the effective configuration.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve applies defaults, file, env, and flags in increasing precedence.
+    It reads but never mutates or retains the input maps. A wrong-typed value
+    or unsupported key panics with a diagnostic naming the key and layer.
+    On an invalid effective log level it returns Config{} and a wrapped
+    ErrInvalidLogLevel.
+

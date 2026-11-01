@@ -1,0 +1,2 @@
+main.go:18:2: module blockcache provides package blockcache and is replaced but not required; to add it:
+	go get blockcache

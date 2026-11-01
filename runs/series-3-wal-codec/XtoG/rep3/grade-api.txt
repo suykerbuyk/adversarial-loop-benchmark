@@ -1,0 +1,35 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var (
+	ErrCorrupt = errors.New("walcodec: corrupt stream")
+	ErrType    = errors.New("walcodec: unsupported record or size")
+)
+
+FUNCTIONS
+
+func Encode(records []Record) ([]byte, error)
+
+TYPES
+
+type Batch struct{ Records []Record }
+
+func (Batch) Kind() uint8
+
+type Delete struct{ Key string }
+
+func (Delete) Kind() uint8
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+
+func (Put) Kind() uint8
+
+type Record interface{ Kind() uint8 }
+
+func Decode(data []byte) ([]Record, error)
+

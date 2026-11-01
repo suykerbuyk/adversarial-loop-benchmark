@@ -1,0 +1,1 @@
+minor: No blocker or major issues remain. The implementation matches the specified precedence, presence, type-panic, and effective-value validation behavior; `go build ./...`, `go vet ./...`, and `go test ./...` all pass.

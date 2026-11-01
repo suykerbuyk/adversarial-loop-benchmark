@@ -1,0 +1,84 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is the error Decode returns for every format failure: a missing
+    version, a version other than 1 or 2, a truncated frame, an oversize length,
+    a CRC mismatch, an unknown type tag, a payload whose interior lengths do
+    not match the frame, an inner frame that escapes its enclosing payload,
+    an n that does not match the payload, or a sub-stream deeper than maxDepth.
+    Decode returns this sentinel directly so errors.Is matches it.
+
+    Encode does not return ErrCorrupt. Its errors are a nil or unknown record,
+    a frame that would exceed the 16 MiB cap, a stream that would exceed the
+    addressable size of an int, and nesting whose sub-stream depth would exceed
+    maxDepth. They come with a nil buffer.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes a version-2 stream: one version byte, then one frame per
+    record in order. Put/Delete-only input and the empty stream are version 2 as
+    well.
+
+    Encodable values are Put, Delete, and Batch. Kind has a value receiver,
+    so *Put, *Delete, and *Batch also satisfy Record, but Encode rejects those
+    pointer forms (and a nil Record, and any other implementation). Pass values.
+    Decode always returns values, never pointers.
+
+    Encode returns a non-ErrCorrupt error, with a nil buffer, when a record is
+    not an encodable value, when a frame's type+payload would exceed 16 MiB,
+    when the summed stream would exceed the addressable size of an int, or when
+    nesting would put a sub-stream deeper than maxDepth. The error text is not a
+    contract; match encode failures by errors.Is against ErrCorrupt being false,
+    not by string comparison.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch is a nested sequence of records. Kind is 3.
+
+    A nil Records slice and an empty Records slice both encode as n = 0 followed
+    by no inner frames. Decode of that payload returns Records set to a non-nil
+    empty slice. Nil and empty are equal for this codec: compare with len,
+    or with a non-nil empty slice. reflect.DeepEqual treats nil and empty as
+    different, so a Batch encoded with a nil Records does not DeepEqual the
+    value Decode returns. This is the same equality rule as Put.Value (nil
+    and empty both encode as length 0 and both decode as a non-nil length-0
+    slice) and the same shape as top-level Decode of a version-only stream,
+    which returns []Record{}, not nil.
+
+func (Batch) Kind() uint8
+
+type Delete struct {
+	Key string
+}
+    Delete removes a key. Kind is 2.
+
+func (Delete) Kind() uint8
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put is a key/value write. Kind is 1.
+
+func (Put) Kind() uint8
+
+type Record interface {
+	Kind() uint8
+}
+    Record is one log entry. Concrete types return a stable type tag from Kind.
+
+func Decode(b []byte) ([]Record, error)
+    Decode parses a version-1 stream (Put and Delete only) or a version-2 stream
+    (Put, Delete, and Batch) into records in stream order. Any other version is
+    ErrCorrupt before any frame. Version 2 uses decodeV2Table. On any format
+    error it returns nil records and ErrCorrupt.
+

@@ -1,0 +1,52 @@
+package blockcache // import "blockcache"
+
+Package blockcache is a bounded, concurrent, single-flight block cache in front
+of a slow backing store.
+
+A Get whose context is already canceled, on a key that is neither resident nor
+in flight, returns ctx.Err() and does not call Loader. That is an implementation
+choice. The spec does not require it. An in-flight load is still joined.
+Do not change this choice as a bug fix.
+
+VARIABLES
+
+var ErrClosed = errors.New("blockcache: closed")
+    ErrClosed is returned by Get after Close. Wrapping is legal; callers detect
+    a closed cache with errors.Is.
+
+
+TYPES
+
+type Cache interface {
+	// Get returns a COPY of the block for key, loading on a miss. Concurrent Gets
+	// for the same absent key cause exactly one Loader call; all receive its result.
+	//
+	// Implementation choice, not a spec requirement: if ctx is already Done and the
+	// key is neither resident nor in flight, Get returns ctx.Err() and does not call
+	// Loader. The spec does not settle this case. An in-flight load is still joined.
+	// Do not flip this choice as a bug fix.
+	Get(ctx context.Context, key string) ([]byte, error)
+	// Len is the number of resident entries. Resident-only; it may lag a completion
+	// by one critical section and is never above capacity.
+	Len() int
+	// Close cancels in-flight loads, waits for their Loader calls to return, wakes
+	// every waiter with ErrClosed, drops all entries, and returns nil. Idempotent.
+	Close() error
+}
+
+func New(capacity int, load Loader) Cache
+    New returns a Cache holding at most capacity entries. It panics if capacity
+    < 1 or load == nil.
+
+type Loader func(ctx context.Context, key string) ([]byte, error)
+    Loader fetches the block for key. The cache calls it at most once per
+    in-flight miss for a key (single-flight). It is given a cache-scoped
+    context, not any single caller's. A Loader MUST return promptly when its ctx
+    is Done.
+
+    A Loader must not call Get, Len, or Close on the same Cache. Re-entry
+    deadlocks: Close waits for the Loader goroutine, and Get for the in-flight
+    key waits on the flight that Loader is still running. This is a package
+    contract, not a supported mode. Do not "fix" re-entry by dropping the
+    WaitGroup wait or by skipping single-flight.
+

@@ -1,0 +1,25 @@
+package config // import "config"
+
+Package config resolves sparse configuration layers into a typed Config.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("invalid log level")
+    ErrInvalidLogLevel is returned when the effective LogLevel is unsupported.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config contains the effective configuration values.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines defaults, file, env, and flags in increasing precedence.
+    A present field replaces the prior value even when it is its type's zero
+    value. A present field with a value of the wrong type panics.
+

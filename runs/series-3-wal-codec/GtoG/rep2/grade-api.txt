@@ -1,0 +1,54 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is returned for every rejected stream. It is not wrapped.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes a version-2 stream. Empty input is a one-byte version-only
+    stream. On any error the returned slice is nil. A tree deeper than the depth
+    cap is not emitted.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch groups nested records. Kind is 3. Its payload is a framed sub-stream.
+
+func (Batch) Kind() uint8
+    Kind returns the Batch type tag.
+
+type Delete struct {
+	Key string
+}
+    Delete removes a key. Kind is 2.
+
+func (Delete) Kind() uint8
+    Kind returns the Delete type tag.
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put stores a key and value. Kind is 1.
+
+func (Put) Kind() uint8
+    Kind returns the Put type tag.
+
+type Record interface {
+	Kind() uint8
+}
+    Record is one write-ahead-log entry. Concrete types return their wire tag
+    from Kind.
+
+func Decode(b []byte) ([]Record, error)
+    Decode parses a version-1 or version-2 stream. Every rejection returns (nil,
+    ErrCorrupt). A version-only stream returns a non-nil empty slice.
+

@@ -1,0 +1,57 @@
+package walcodec // import "walcodec"
+
+Package walcodec encodes versioned write-ahead log records as CRC-protected
+frames. Each frame has a big-endian body length, a type and payload, and a
+CRC32-IEEE; each type-plus-payload body is limited to 16 MiB.
+
+VARIABLES
+
+var (
+	// ErrCorrupt identifies malformed or unsupported encoded streams.
+	ErrCorrupt = errors.New("walcodec: corrupt stream")
+	// ErrUnsupportedRecord identifies a Record implementation Encode cannot encode.
+	ErrUnsupportedRecord = errors.New("walcodec: unsupported record")
+	// ErrRecordTooLarge identifies a frame body larger than the format limit.
+	ErrRecordTooLarge = errors.New("walcodec: record too large")
+)
+
+FUNCTIONS
+
+func Encode(records []Record) ([]byte, error)
+    Encode writes a version-2 stream containing Put, Delete, and nested Batch
+    records in order. Batch nesting is limited to eight levels. Unsupported
+    records, oversized frame bodies, and excessive nesting return errors;
+    the nesting error also matches ErrCorrupt.
+
+
+TYPES
+
+type Batch struct{ Records []Record }
+    Batch groups records in a nested framed sub-stream. Decoding an empty Batch
+    produces a non-nil empty Records slice.
+
+func (Batch) Kind() uint8
+    Kind returns the Batch record kind.
+
+type Delete struct{ Key string }
+    Delete removes a key.
+
+func (Delete) Kind() uint8
+    Kind returns the Delete record kind.
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put stores a value under a key.
+
+func (Put) Kind() uint8
+    Kind returns the Put record kind.
+
+type Record interface{ Kind() uint8 }
+    Record is a WAL record that can be encoded by this package.
+
+func Decode(data []byte) ([]Record, error)
+    Decode accepts version-1 Put/Delete streams and version-2 streams containing
+    Put, Delete, and nested Batch records.
+

@@ -1,0 +1,2 @@
+minor — The frame-decoding checklist never explicitly rejects `len == 0`. The wire format requires `len` to include a type byte, so a zero-length body is malformed; requiring that the body “fit” and then verifying CRC does not itself guarantee the parser checks this lower bound. State and enforce `1 <= len <= 16 MiB` before reading the body. The `remaining/9` Batch count guard also relies on this minimum-frame invariant.
+No blocker or major issue remains.

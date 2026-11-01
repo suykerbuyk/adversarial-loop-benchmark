@@ -1,0 +1,49 @@
+package config // import "config"
+
+Package config computes an effective configuration from ordered layers.
+
+Layers are plain in-memory maps supplied by the caller; the package never reads
+the environment, files, or the command line.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is returned (possibly wrapped) by Resolve when the
+    effective LogLevel is not one of "debug", "info", "warn", "error", or "".
+    Match it with errors.Is.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration produced by Resolve.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve merges four layers, given from lowest to highest precedence
+    (defaults, file, env, flags), into an effective Config.
+
+    A field is presented by a layer when its key exists in the layer's map; a
+    presented value overrides lower layers even when it is a zero value (false,
+    0, ""). An absent key leaves the lower layers' value in place. A field that
+    no layer presents keeps its Go zero value. A nil map is a layer in which
+    every field is absent.
+
+    The legal keys are "Verbose" (bool), "MaxRetries" (int), "LogLevel"
+    (string), and "TimeoutSec" (int). An unknown key, or a present value whose
+    dynamic type is not exactly the field's type (including an explicit nil
+    value), is a programmer error and causes a panic. This is checked in every
+    layer, including values that a higher layer overrides.
+
+    Validation applies only to the effective values. If it fails, Resolve
+    returns the zero Config and an error; for an invalid LogLevel the error
+    satisfies errors.Is(err, ErrInvalidLogLevel). Callers must not rely on any
+    partially merged value when err != nil.
+
+    Resolve does not mutate or retain its arguments and is safe for concurrent
+    use.
+

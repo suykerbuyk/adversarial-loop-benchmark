@@ -1,0 +1,4 @@
+minor: The field registry is only a key plus an apply closure, so expected type and assignment live inside each closure and can drift from Config; adding a field still means a hand-written closure, and adding a layer still means editing the fixed four-argument Resolve signature and the positional layers array.
+minor: Wrong-type panics are bare strings from panicType, with no package-level panic type, so callers cannot distinguish a type violation from an unrelated panic or recover the key and types without parsing "config: %s must be %s (got %T)".
+nit: Unknown keys are ignored by iterating only the descriptor list, with no registry-derived membership check that would stay correct if a later strict mode is specified; the spec does not require rejection, and the comment on Resolve states the policy.
+No blocker or major issue remains.

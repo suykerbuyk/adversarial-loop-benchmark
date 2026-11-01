@@ -1,0 +1,24 @@
+package config // import "config"
+
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("invalid log level")
+    ErrInvalidLogLevel is returned when the effective log level is unsupported.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the resolved application configuration.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines configuration layers in increasing precedence order:
+    defaults, file, env, then flags. A present field overrides lower layers,
+    including when its value is the Go zero value.
+

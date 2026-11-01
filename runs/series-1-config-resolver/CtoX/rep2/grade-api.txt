@@ -1,0 +1,43 @@
+package config // import "config"
+
+Package config computes an effective configuration from ordered layers.
+
+Four layers are combined in precedence order: defaults, file, env, flags.
+A higher layer overrides a lower one for each field it presents. A field is
+presented when its key exists in the layer's map, even if the value is a zero
+value (false, 0, ""). An absent key has no effect, so the value from lower
+layers shows through. A field that no layer presents keeps its Go zero value.
+
+The package does not read the environment, files, or the command line; the
+caller supplies every layer.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is returned (wrapped) by Resolve when the effective
+    LogLevel is not one of "debug", "info", "warn", "error", or "". Match it
+    with errors.Is.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective, resolved configuration.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines the four layers, given in precedence order from lowest
+    (defaults) to highest (flags), and returns the effective Config.
+
+    A nil layer presents nothing. Only the effective LogLevel is validated; an
+    invalid one yields a zero Config and an error matching ErrInvalidLogLevel.
+
+    Resolve panics if any layer contains an unknown key or a value whose Go
+    type does not exactly match its field's type. These are programmer errors
+    and are detected for every presented value, including overridden ones.
+    The input maps are never modified.
+

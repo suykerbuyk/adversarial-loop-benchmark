@@ -1,0 +1,2 @@
+No blocker or major issues remain.
+minor: `Encode` validates the record tree in a first pass and traverses it again while serializing; concurrent mutation of caller-owned `Batch.Records`, `Put.Value`, or referenced record pointers between those passes can make the output inconsistent or panic. The API should document that inputs must remain immutable during the call, or snapshot the normalized tree before writing.

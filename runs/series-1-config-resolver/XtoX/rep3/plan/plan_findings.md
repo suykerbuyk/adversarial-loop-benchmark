@@ -1,0 +1,1 @@
+minor: No blocker or major issue remains. The plan preserves key presence separately from zero values, resolves in explicit precedence order, panics on present wrong-typed values, and validates only the effective LogLevel; these match the spec and public tests. Its stated module root (`worktree/`, module `config`, Go 1.25) also matches the repository layout.

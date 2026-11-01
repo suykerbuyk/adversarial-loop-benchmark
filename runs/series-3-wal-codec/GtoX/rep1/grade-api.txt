@@ -1,0 +1,57 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is the only error the codec returns for a bad stream or a bad
+    encode input.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes a version-2 stream. recs nil and recs empty are the same.
+    Unknown record types, nesting past depth 8, and frames over the 16 MiB cap
+    return ErrCorrupt. Length is checked before payload bytes are copied.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch is a nested framed sub-stream. Kind is 3.
+
+func (Batch) Kind() uint8
+    Kind returns the Batch type tag.
+
+type Delete struct {
+	Key string
+}
+    Delete is a key removal. Kind is 2.
+
+func (Delete) Kind() uint8
+    Kind returns the Delete type tag.
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put is a key/value write. Kind is 1.
+
+func (Put) Kind() uint8
+    Kind returns the Put type tag.
+
+type Record interface {
+	Kind() uint8
+}
+    Record is a log entry. Concrete types return a stable type tag from Kind.
+
+func Decode(b []byte) ([]Record, error)
+    Decode reads a version-1 or version-2 stream. Order is stream order.
+    A missing version byte, an unknown version, a bad frame, or a bad
+    payload returns ErrCorrupt. Oversize lengths are rejected before any body
+    allocation. Version 1 accepts Put and Delete only. Version 2 also accepts
+    Batch.
+

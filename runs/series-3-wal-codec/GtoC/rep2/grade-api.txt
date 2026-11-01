@@ -1,0 +1,72 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is returned bare by Decode for every corrupt stream, and bare
+    by Encode when nesting exceeds depth 8. It is not the only package error:
+    an unsupported concrete type and a frame that would exceed 16 MiB use
+    unexported errors that do not match ErrCorrupt.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes a version-2 stream: version byte, then one frame per record,
+    in slice order. A nest past depth 8 returns bare ErrCorrupt (err ==
+    ErrCorrupt and errors.Is both hold). An unsupported concrete type and a
+    frame body that would exceed 16 MiB return unexported errors that do not
+    match ErrCorrupt.
+
+    Each frame carries its own CRC32-IEEE over type+payload, including frames
+    nested inside a Batch. The outer CRC covers those inner frames again.
+    That repeated hash is required: a later change must not skip an inner CRC.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch is a nested group of records. Kind is 3. Its payload is itself a
+    framed sub-stream: a big-endian uint32 count n, then exactly n frames of
+    the same [len][type][payload][crc] shape. Top-level records sit at depth 0.
+    A Batch's inner sub-stream is one level deeper. A sub-stream at depth
+    greater than 8 is corrupt.
+
+    A decoded Records slice is always non-nil, including for an empty Batch.
+    Encode of Batch{Records: nil} writes n = 0 and decodes back as an empty
+    non-nil slice, the same convention as a nil Put.Value decoding to length 0.
+    reflect.DeepEqual therefore does not round-trip a nil Records field.
+
+func (Batch) Kind() uint8
+
+type Delete struct {
+	Key string
+}
+    Delete is a key removal. Kind is 2.
+
+func (Delete) Kind() uint8
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put is a key/value write. Kind is 1.
+
+func (Put) Kind() uint8
+
+type Record interface {
+	Kind() uint8
+}
+    Record is one log entry. Kind returns the wire type tag.
+
+func Decode(b []byte) ([]Record, error)
+    Decode parses a version-1 stream (Put and Delete only) or a version-2 stream
+    (Put, Delete, and nested Batch). On any corrupt input it returns (nil,
+    ErrCorrupt).
+
+    Each frame's CRC is checked before its payload is trusted, including frames
+    nested inside a Batch. An outer CRC does not replace those inner checks.
+

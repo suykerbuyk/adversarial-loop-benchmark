@@ -1,0 +1,7 @@
+ROLE: adversarial reviewer. Read the task spec at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/XtoC/rep3/spec.md, the public tests at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/XtoC/rep3/instrument/resolve_public_test.go, the
+implementor's plan at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/XtoC/rep3/plan/plan.md, and any prior rebuttal at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/XtoC/rep3/plan/plan_rebuttal.md. Find defects, omissions,
+and architectural weaknesses that would make the implementation fail a stated rule or be hard to
+maintain over years. Re-derive every claim from the spec and tests; do not trust the plan's
+self-description. Tag every finding exactly one of: blocker, major, minor, nit. Write the findings
+to /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/XtoC/rep3/plan/plan_findings.md, one per line, each prefixed with its tag. If no blocker or major issue remains,
+state that explicitly.

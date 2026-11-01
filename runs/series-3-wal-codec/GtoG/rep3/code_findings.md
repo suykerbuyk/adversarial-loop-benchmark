@@ -1,0 +1,2 @@
+No blocker or major issue remains.
+nit: `takeBytes` still subtracts `len(payload)-lenSize` before proving the payload is at least 4 bytes (`walcodec.go` `if i < 0 || i > len(payload)-lenSize`). A short Put or Delete payload does not panic today because the wrapped compare fails and returns `ErrCorrupt`, but that depends on unsigned wraparound rather than an explicit `len(payload) < lenSize` guard.

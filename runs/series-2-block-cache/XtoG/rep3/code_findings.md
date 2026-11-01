@@ -1,0 +1,7 @@
+No blocker or major issue remains. `go test -race` and `go vet` pass. Rule 7's closed-before-cancel priority holds once Close has set `closed`: Get rechecks `c.closed` under the mutex before returning `ctx.Err()` (blockcache.go:100-108). A probe that cancels the waiter only after the Loader has observed Close's cancel returned ErrClosed 50/50; an earlier 300/300 context.Canceled result was the legal case where the waiter left before Close set the flag.
+
+minor: A Loader that calls Close deadlocks every Close, including one from another goroutine. Close joins `c.loaders` (blockcache.go:184) and the Loader goroutine is still inside that WaitGroup until `runLoad` returns (blockcache.go:164). Confirmed: an external Close stayed blocked for 400ms while the Loader sat in Close. The same self-wait happens if a Loader calls Get on its own key and that Get waits on the in-flight flight. Neither constraint is stated on Loader. A nested Get of a different key completes.
+
+nit: Waiter and hit copies run under the global mutex (blockcache.go:81 and blockcache.go:120). `f.value` and the resident slice are immutable once published, so the copy can happen after Unlock.
+
+nit: `runLoad` turns a Loader panic into `errors.New("blockcache: loader panicked")` (blockcache.go:133-135). That is outside the spec, drops the panic value, and is easy to mistake for a backing-store error. Close still joins, and the key is not stored.

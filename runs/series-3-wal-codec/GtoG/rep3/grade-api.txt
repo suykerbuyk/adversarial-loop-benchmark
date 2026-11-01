@@ -1,0 +1,57 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is returned for any malformed stream or unencodable record.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes a version-2 stream of recs. An empty or nil recs yields a
+    one-byte version stream. Nesting deeper than maxBatchDepth is ErrCorrupt;
+    Encode does not emit a stream it would reject.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch records a nested framed sub-stream of Put, Delete, or Batch records.
+    Kind is 3.
+
+func (Batch) Kind() uint8
+    Kind returns the Batch wire tag.
+
+type Delete struct {
+	Key string
+}
+    Delete records a key removal. Kind is 2.
+
+func (Delete) Kind() uint8
+    Kind returns the Delete wire tag.
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put records a key and value. Kind is 1.
+
+func (Put) Kind() uint8
+    Kind returns the Put wire tag.
+
+type Record interface {
+	Kind() uint8
+}
+    Record is one write-ahead-log entry. Concrete types return their wire tag
+    from Kind.
+
+func Decode(b []byte) ([]Record, error)
+    Decode reads a version-1 or version-2 stream. A missing version byte,
+    unknown version, bad CRC, unknown type, truncated frame, oversize length, or
+    nesting past depth 8 is ErrCorrupt. Version 1 accepts only Put and Delete.
+    Version 2 also accepts Batch.
+

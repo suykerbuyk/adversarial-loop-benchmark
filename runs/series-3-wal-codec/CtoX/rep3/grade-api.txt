@@ -1,0 +1,102 @@
+package walcodec // import "walcodec"
+
+Package walcodec encodes and decodes a versioned, framed write-ahead-log record
+stream.
+
+A stream is a single version byte followed by zero or more frames:
+
+    stream = version(1) frame*
+    frame  = len(4) type(1) payload(len-1) crc(4)
+
+All integers are big-endian. len counts type+payload only; crc is a CRC32-IEEE
+checksum over type+payload and sits outside len. len is capped at 16 MiB at
+every nesting depth.
+
+Record types are Put (1), Delete (2), and Batch (3). A Batch payload is itself a
+framed sub-stream:
+
+    batch payload = n(4) frame_1 ... frame_n
+
+The n inner frames must consume the payload exactly. The top-level stream is
+depth 0 and a Batch's sub-stream sits one level deeper than the Batch itself;
+a sub-stream deeper than 8 is rejected.
+
+Encode writes version 2. Decode accepts version 1 (Put and Delete only) and
+version 2 (all record types); any other version is rejected.
+
+CONSTANTS
+
+const (
+	KindPut    uint8 = 1
+	KindDelete uint8 = 2
+)
+    Record type tags.
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is wrapped by every error Decode returns.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes recs as a version-2 stream, frames in slice order. The stream
+    may include Batches.
+
+    Put, Delete, Batch, and non-nil *Put / *Delete / *Batch are accepted,
+    at any depth. Any other record (including nil) is rejected, as is a record
+    whose frame (at any depth) would exceed the 16 MiB cap, and a Batch whose
+    sub-stream would sit deeper than 8. Encode never emits a stream Decode
+    would reject. Encode errors do not wrap ErrCorrupt. On error no bytes are
+    returned.
+
+
+TYPES
+
+type Batch struct{ Records []Record }
+    Batch groups records into a single frame whose payload is a nested framed
+    sub-stream. Records may include Put, Delete, and nested Batch values.
+
+func (Batch) Kind() uint8
+    Kind returns 3, the Batch wire type tag.
+
+type Delete struct{ Key string }
+    Delete removes Key.
+
+func (Delete) Kind() uint8
+    Kind returns KindDelete.
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put sets Key to Value.
+
+func (Put) Kind() uint8
+    Kind returns KindPut.
+
+type Record interface{ Kind() uint8 }
+    Record is a single log entry. Concrete types return their wire type tag.
+
+func Decode(b []byte) ([]Record, error)
+    Decode parses a version-1 or version-2 stream. Records are returned in
+    stream order; Batches are returned as Batch values. Every error wraps
+    ErrCorrupt, and on error no records are returned. Decoded records never
+    alias b.
+
+    Errors are preallocated, and no allocation is sized by an unvalidated length
+    or count field, so an error found before any record is built allocates
+    nothing. An error found after some records were decoded discards them;
+    their allocation is not undone.
+
+    Heap use is linear in len(b) but is NOT bounded by len(b) itself. Every
+    frame takes at least 13 input bytes, yet each decoded record costs a boxed
+    record header (16-48 bytes), a 16-byte slot in its parent's []Record (plus
+    append growth slack), and copies of its key and value. A stream of minimal
+    records (empty Deletes, Puts, or Batches) therefore allocates up to roughly
+    10x len(b) in total, success or failure. Decode imposes no record-count
+    limit of its own; callers decoding untrusted input should cap len(b) with
+    that factor in mind.
+

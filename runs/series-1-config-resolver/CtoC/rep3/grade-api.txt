@@ -1,0 +1,58 @@
+package config // import "config"
+
+Package config computes an effective configuration by combining ordered layers
+of in-memory values. A higher-precedence layer overrides a lower one.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is matched (via errors.Is) by the error Resolve returns
+    when the effective LogLevel is not one of "debug", "info", "warn", "error"
+    or "".
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration produced by Resolve.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines four layers, in increasing precedence order defaults < file
+    < env < flags, into the effective Config. Any layer may be nil, which is
+    equivalent to an empty layer.
+
+    A key present in a layer sets the corresponding field, even when the value
+    is a zero value (false, 0, ""); among the layers presenting a field,
+    the highest-precedence one wins. A key absent from a layer leaves the value
+    from lower layers in place. A field presented by no layer takes its Go zero
+    value.
+
+    Legal keys are "Verbose" (bool), "MaxRetries" (int), "LogLevel" (string) and
+    "TimeoutSec" (int). Resolve panics on a programmer error:
+      - a key other than the legal keys, or
+      - a present value whose dynamic Go type is not exactly the field's type.
+
+    Both checks apply to every present value in every layer, including values
+    that are later overridden. The panic value is an error whose message names
+    the layer, the key and (for type mismatches) the dynamic type, but never the
+    value itself; for a given input the message is deterministic. Unknown keys
+    are echoed in the message (each truncated to maxEchoRunes runes, and at most
+    maxEchoKeys of them listed), so a caller that mistakenly puts data into a
+    key may see a short prefix of it there.
+
+    Only the effective LogLevel is validated. If it is invalid, Resolve returns
+    the effective Config together with an error matching ErrInvalidLogLevel;
+    that Config is for diagnostics only and must not be used as a valid
+    configuration when the error is non-nil. (This is a deliberate part of the
+    contract: the spec has Resolve return the effective Config and an error.)
+    The error message echoes the offending level, quoted and truncated to
+    maxEchoRunes runes, because naming the bad level is what makes the error
+    actionable.
+
+    Resolve does not mutate or retain its inputs and is safe for concurrent use.
+

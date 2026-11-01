@@ -1,0 +1,2 @@
+minor: §4.4 closes `closing` and settles waiters before cancelling the cache context and joining Loader calls, while rule 8 describes Close as cancelling, waiting, then waking waiters. The plan argues the earlier wake preserves the observable contract and improves liveness; unless that listed order is intended to be normative, this is not a correctness defect, but it is an avoidable contract ambiguity and should be reconciled explicitly with the spec.
+No blocker or major issue remains.

@@ -1,0 +1,73 @@
+package blockcache // import "blockcache"
+
+Package blockcache provides a bounded, concurrent, single-flight LRU cache of
+byte blocks in front of a slow backing store.
+
+VARIABLES
+
+var ErrClosed = errors.New("blockcache: closed")
+    ErrClosed is returned by Get once the cache has been closed.
+
+
+TYPES
+
+type Cache interface {
+	// Get returns a COPY of the block for key, loading on a miss. Concurrent Gets
+	// for the same absent key cause exactly one Loader call; all receive its result.
+	//
+	// A hit never blocks, so ctx is not consulted. On a miss, a waiting Get
+	// returns, in priority: ErrClosed if the cache closes; else ctx.Err() if ctx is
+	// Done while the load is still in flight; else the load's result. A miss with
+	// an already-cancelled ctx still starts (or joins) the load, which warms the
+	// cache as an orphan load. Once Close has begun, a waiting Get returns
+	// ErrClosed; it is normally woken only after Close has joined every Loader,
+	// but if its own ctx is (or becomes) Done during that join it returns
+	// ErrClosed at once, so a caller's deadline is never held hostage by slow
+	// Loaders. A Get that reaches the closed check after Close has begun returns
+	// ErrClosed at once without calling the Loader.
+	//
+	// If the Loader returns (nil, nil), an empty block is stored and Get returns a
+	// non-nil, zero-length slice. Get panics if ctx is nil.
+	Get(ctx context.Context, key string) ([]byte, error)
+	// Len is the number of resident entries. Resident-only; it may lag a completion
+	// by one critical section and is never above capacity.
+	Len() int
+	// Close cancels in-flight loads, waits for their Loader calls to return, wakes
+	// every waiter with ErrClosed, drops all entries, and returns nil. Idempotent:
+	// a Close that arrives while another is still joining waits for that join.
+	Close() error
+}
+    Cache is a bounded, concurrent, single-flight LRU block cache. All methods
+    are safe for concurrent use.
+
+func New(capacity int, load Loader) Cache
+    New returns a Cache holding at most capacity entries. It panics if capacity
+    < 1 or load == nil.
+
+    In-flight loads are not bounded: each distinct cold key being loaded costs
+    one goroutine (and one bookkeeping entry) until its Loader returns, so a
+    burst of distinct cold keys produces a matching burst of concurrent Loader
+    calls.
+
+type Loader func(ctx context.Context, key string) ([]byte, error)
+    Loader fetches the block for key. The cache calls it at most once per
+    in-flight miss for a key (single-flight). It is given a cache-scoped
+    context, not any single caller's. A Loader MUST return promptly when its
+    ctx is Done: Close, and any Get caught by a closing cache, wait for every
+    in-flight Loader to return.
+
+    A Loader that panics or calls runtime.Goexit resolves its flight with an
+    error; every waiter of that flight receives it and the key is not stored.
+    A panic's error message includes the panic value and the Loader goroutine's
+    stack trace, and if the panic value is an error it is reachable via
+    errors.Is/As. The Goexit error is deliberately opaque (unexported); treat it
+    like any other load failure.
+
+    A Loader may Get other keys from its own cache (e.g. for composite blocks),
+    but it must pass its ctx (or a ctx derived from it) so that the nested Get
+    returns ErrClosed promptly when the cache closes. A nested Get under an
+    unrelated, never-cancelled ctx would keep the Loader from returning and so
+    stall Close. A Loader must not call Close on its own cache (Close would wait
+    for itself and deadlock), and should not Get its own key (it would wait on
+    itself until its ctx is Done).
+

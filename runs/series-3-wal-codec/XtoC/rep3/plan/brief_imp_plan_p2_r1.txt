@@ -1,0 +1,5 @@
+ROLE: implementor. Read the v2 amendment at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-walcodec/XtoC/rep3/amendment.md, the v2 public tests at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-walcodec/XtoC/rep3/instrument/walcodec_v2_public_test.go, and the
+existing v1 code in /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-walcodec/XtoC/rep3/worktree. If prior adversary findings exist at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-walcodec/XtoC/rep3/plan/plan_findings.md, read them and address each.
+Produce a plan for the amendment: what changes, what stays, and how each v2 rule is satisfied.
+Write the plan to /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-walcodec/XtoC/rep3/plan/plan.md. If you are responding to findings, also write a point-by-point response to
+/home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok-walcodec/XtoC/rep3/plan/plan_rebuttal.md. Do not implement anything. Write nothing else.

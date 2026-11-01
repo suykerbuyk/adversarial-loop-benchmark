@@ -1,0 +1,68 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is returned for any stream Decode cannot accept: a missing or
+    unknown version, a truncated frame, an oversize length, a CRC mismatch,
+    an unknown type tag, a payload that does not match its length prefixes,
+    or a Batch nested past the depth cap.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes a version-2 stream: a version byte, then one frame per record
+    in slice order. A nil or empty slice encodes as the version byte alone.
+
+    A nil element, an unknown concrete type, a length that does not fit in
+    uint32, a frame that would exceed maxFrameLen, or a Batch nested past
+    the depth cap returns (nil, error). Those errors are ordinary errors,
+    not ErrCorrupt. The encoder refuses a stream it would itself reject.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch is a nested framed sub-stream of records. Kind is 3.
+
+func (Batch) Kind() uint8
+    Kind returns the Batch wire tag. A value receiver so both Batch and *Batch
+    satisfy Record.
+
+type Delete struct {
+	Key string
+}
+    Delete removes a key. Kind is 2.
+
+func (Delete) Kind() uint8
+    Kind returns the Delete wire tag. A value receiver so both Delete and
+    *Delete satisfy Record.
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put is a key/value write. Kind is 1.
+
+func (Put) Kind() uint8
+    Kind returns the Put wire tag. A value receiver so both Put and *Put satisfy
+    Record.
+
+type Record interface {
+	Kind() uint8
+}
+    Record is one write-ahead-log entry. Concrete types return their wire tag
+    from Kind.
+
+func Decode(b []byte) ([]Record, error)
+    Decode reads a version-1 or version-2 stream into records in frame order.
+    Version 1 accepts Put and Delete only. Version 2 also accepts Batch, nested
+    up to depth 8. Duplicate keys are kept. On any corruption it returns (nil,
+    ErrCorrupt) with no partial list.
+
+    A nil value and an empty value both decode to a non-nil length-0 slice.
+

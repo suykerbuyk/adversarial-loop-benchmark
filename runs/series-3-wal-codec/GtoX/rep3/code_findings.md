@@ -1,0 +1,1 @@
+No blocker or major issue remains. No actionable blocker, major, minor, or nit findings found after reviewing the spec, implementation, and tests; the prior oversized-Batch allocation finding is fixed by pre-measuring nested frames before encoding.

@@ -1,0 +1,2 @@
+minor: `runLoad` clones successful Loader bytes only after acquiring `c.mu` (and potentially after waiting behind unrelated cache operations). The spec requires the cache to take ownership of the Loader's returned bytes; copying immediately after `load` returns avoids retaining a slice that a Loader may reuse or mutate while publication waits, and avoids a race with such reuse. Move the success copy before locking, then publish that owned copy.
+No blocker or major issue remains.

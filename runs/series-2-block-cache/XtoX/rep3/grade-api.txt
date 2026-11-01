@@ -1,0 +1,22 @@
+package blockcache // import "blockcache"
+
+
+VARIABLES
+
+var ErrClosed = errors.New("blockcache: closed")
+
+TYPES
+
+type Cache interface {
+	Get(ctx context.Context, key string) ([]byte, error)
+	Len() int
+	Close() error
+}
+    Cache is a bounded, concurrent block cache.
+
+func New(capacity int, load Loader) Cache
+    New constructs a cache with the given resident-entry limit.
+
+type Loader func(ctx context.Context, key string) ([]byte, error)
+    Loader fetches the block associated with a key.
+

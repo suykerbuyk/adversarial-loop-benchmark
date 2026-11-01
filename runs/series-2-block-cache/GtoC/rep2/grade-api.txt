@@ -1,0 +1,34 @@
+package blockcache // import "blockcache"
+
+
+VARIABLES
+
+var ErrClosed = errors.New("blockcache: closed")
+    ErrClosed is returned by Get after Close.
+
+
+TYPES
+
+type Cache interface {
+	// Get returns a COPY of the block for key, loading on a miss. Concurrent Gets
+	// for the same absent key cause exactly one Loader call; all receive its result.
+	Get(ctx context.Context, key string) ([]byte, error)
+	// Len is the number of resident entries. Resident-only; it may lag a completion
+	// by one critical section and is never above capacity.
+	Len() int
+	// Close cancels in-flight loads, waits for their Loader calls to return, wakes
+	// every waiter with ErrClosed, drops all entries, and returns nil. Idempotent.
+	Close() error
+}
+    Cache is a bounded, concurrent, single-flight block cache.
+
+func New(capacity int, load Loader) Cache
+    New returns a Cache holding at most capacity entries. It panics if capacity
+    < 1 or load == nil.
+
+type Loader func(ctx context.Context, key string) ([]byte, error)
+    Loader fetches the block for key. The cache calls it at most once per
+    in-flight miss for a key (single-flight). It is given a cache-scoped
+    context, not any single caller's. A Loader MUST return promptly when its ctx
+    is Done.
+

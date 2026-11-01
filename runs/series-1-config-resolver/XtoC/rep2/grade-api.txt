@@ -1,0 +1,27 @@
+package config // import "config"
+
+Package config resolves layered in-memory configuration values.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("invalid log level")
+    ErrInvalidLogLevel is returned when the effective LogLevel is unsupported.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration produced by Resolve.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve applies defaults, file, env, and flags in ascending precedence.
+    Nil maps are empty layers; inputs are read but never mutated or retained.
+    Unknown keys and values with the wrong Go type panic. If the effective
+    LogLevel is invalid, Resolve returns a zero Config and an error matching
+    ErrInvalidLogLevel.
+

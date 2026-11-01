@@ -1,0 +1,38 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("corrupt wal stream")
+
+FUNCTIONS
+
+func Encode(records []Record) ([]byte, error)
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+
+func (Batch) Kind() byte
+
+type Delete struct {
+	Key string
+}
+
+func (Delete) Kind() byte
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+
+func (Put) Kind() byte
+
+type Record interface {
+	Kind() byte
+}
+
+func Decode(data []byte) ([]Record, error)
+

@@ -1,0 +1,2 @@
+[minor] `encodeStream` recursively builds a Batch's entire child stream before checking the enclosing frame's 16 MiB limit (`worktree/walcodec.go`, `case Batch`); a caller supplying an oversized Batch can trigger allocations proportional to the whole nested input even though Encode will reject it. Consider bounding accumulated child bytes before appending further frames.
+No blocker or major issue remains.

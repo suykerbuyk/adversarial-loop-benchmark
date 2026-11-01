@@ -1,0 +1,2 @@
+minor: The plan makes unknown keys panic, although the spec only mandates a panic for a present value of the wrong Go type and does not define unknown-key behavior. This is a defensible typo-catching choice, but it is an extra API behavior; document it as an intentional contract or avoid relying on it if callers may pass maps assembled from broader sources.
+No blocker or major issues remain: the stated merge, presence, type-panic, effective-only validation, and errors.Is requirements are accounted for by the planned algorithm.

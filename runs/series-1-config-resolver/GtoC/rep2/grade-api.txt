@@ -1,0 +1,58 @@
+package config // import "config"
+
+Package config merges four in-memory configuration layers into an effective
+Config.
+
+Layers are supplied by the caller in increasing precedence: defaults, file,
+env, flags. Those names are precedence labels only. Resolve does not read the
+environment, files, or the command line.
+
+A field is present in a layer when its key is in that layer's map. A nil map is
+an empty layer: every field is absent. A present value of false, 0, or "" still
+sets the field. An absent key leaves the value from lower layers unchanged.
+If no layer presents a field, the effective value is that field's Go zero value.
+
+The only legal keys are Verbose, MaxRetries, LogLevel, and TimeoutSec. A present
+value whose dynamic type does not match the field (including a nil interface
+value) is a programmer error and panics. An unknown key is also a programmer
+error and panics; that is a design decision so a typo cannot be silently
+ignored. Every layer is scanned, including values that a higher layer overrides,
+so a programmer error is never hidden by precedence. Resolve does not recover
+from those panics.
+
+Validation applies only to the effective LogLevel, after the merge. An illegal
+level that a higher layer overrides is not validated. On validation failure
+Resolve returns the merged Config and an error that wraps ErrInvalidLogLevel.
+
+Resolve does not mutate the input maps. It does not synchronize. The caller must
+not mutate a map while Resolve is reading it.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is returned (via errors.Is) when the effective
+    LogLevel is not one of the values accepted by validate. The legal set is
+    legalLogLevels.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration after layer merge. Field order and
+    names are fixed; tests compare with ==.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve merges defaults, file, env, and flags in increasing precedence.
+    A nil map is an empty layer (every field absent). Unknown keys and wrong Go
+    types panic. See the package comment. On success and on validation failure,
+    the Config value is the merged effective configuration. Validation runs only
+    on the effective LogLevel.
+
+    Resolve does not synchronize. The caller must not mutate a map during
+    Resolve.
+

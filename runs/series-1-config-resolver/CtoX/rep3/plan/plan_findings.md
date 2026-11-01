@@ -1,0 +1,2 @@
+minor: Unknown-key behavior is still a contract choice, not a consequence of the stated panic rule. The spec calls the four listed strings the only legal keys, but only explicitly says a wrong Go value type must panic; it does not define behavior for maps containing extra keys. The plan's rejection therefore imposes an undocumented panic on inputs outside the specified legal-key domain. Keep the choice explicit as the plan does, but document that it is an assumption and avoid presenting it as a behavior required by the spec.
+No blocker or major issue remains.

@@ -1,0 +1,31 @@
+package config // import "config"
+
+Package config resolves an effective configuration from ordered in-memory
+layers. Lower layers are overridden only where a higher layer presents the same
+field.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level; legal values are debug, info, warn, error, and empty")
+    ErrInvalidLogLevel is returned when the effective LogLevel is not one of
+    "debug", "info", "warn", "error", or "" (an explicit empty level).
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration after layer merge and validation.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve merges defaults, file, env, and flags from lowest to highest
+    precedence. A key present in a layer sets that field, including zero values
+    (false, 0, ""). A key absent from a layer leaves the lower value unchanged.
+    Nil maps are absent layers. Only the effective LogLevel is validated. A
+    present key outside the legal set, or a present value of the wrong Go type,
+    is a programmer error and panics.
+

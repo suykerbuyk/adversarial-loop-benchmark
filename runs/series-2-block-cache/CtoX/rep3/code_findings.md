@@ -1,0 +1,2 @@
+major: Reentrant Loader calls can deadlock: if a Loader calls Close on its own cache, Close waits for the currently executing Loader; if it calls Get for the same key, it waits on its own in-flight call. Neither restriction appears in the task contract, despite the global no-deadlock requirement; document/enforce a supported reentrancy contract or redesign joining behavior.
+No blocker or major issue remains beyond this finding.

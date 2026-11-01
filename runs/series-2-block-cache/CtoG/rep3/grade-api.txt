@@ -1,0 +1,49 @@
+package blockcache // import "blockcache"
+
+Package blockcache provides a bounded, concurrent, single-flight block cache in
+front of a slow backing store.
+
+Get returns a fresh copy of the block that the caller owns and may mutate.
+A successful load of a nil or empty block is returned as a non-nil, zero-length
+slice. On any error Get returns a nil slice, so callers must use the error,
+not a nil check on the bytes, to detect failure.
+
+Loaders run under a cache-scoped context and must return promptly once it is
+Done; Close waits for every in-flight Loader call to return. Calling Close from
+inside a Loader, or a Loader that Gets its own key while ignoring its context,
+is out of contract and may block forever. A panicking Loader is also out of
+contract; the panic is recovered and reported to that load's waiters as an
+error whose message is not a stable API. A Loader that calls runtime.Goexit is
+likewise reported as an error. A nil caller context is not supported.
+
+VARIABLES
+
+var ErrClosed = errors.New("blockcache: closed")
+    ErrClosed is returned by Get once the cache has been closed.
+
+
+TYPES
+
+type Cache interface {
+	// Get returns a COPY of the block for key, loading on a miss. Concurrent Gets
+	// for the same absent key cause exactly one Loader call; all receive its result.
+	Get(ctx context.Context, key string) ([]byte, error)
+	// Len is the number of resident entries. Resident-only; it may lag a completion
+	// by one critical section and is never above capacity.
+	Len() int
+	// Close cancels in-flight loads, waits for their Loader calls to return, wakes
+	// every waiter with ErrClosed, drops all entries, and returns nil. Idempotent.
+	Close() error
+}
+    Cache is a bounded, concurrent, single-flight block cache.
+
+func New(capacity int, load Loader) Cache
+    New returns a Cache holding at most capacity entries. It panics if capacity
+    < 1 or load == nil.
+
+type Loader func(ctx context.Context, key string) ([]byte, error)
+    Loader fetches the block for key. The cache calls it at most once per
+    in-flight miss for a key (single-flight). It is given a cache-scoped
+    context, not any single caller's. A Loader MUST return promptly when its ctx
+    is Done.
+

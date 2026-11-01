@@ -1,0 +1,5 @@
+No blocker or major issue remains.
+nit: appendBatch writes the len placeholder, type, and count before the per-child budget check, so a child that cannot fit (childLimit < minRecordBody) still grows the buffer and then discards it; the failure path is correct (nil slice, unprefixed error wrapped once as walcodec: record N) but the early count check does not cover this remainder case.
+nit: decoder.batch reports "truncated batch count" for a crc-valid payload shorter than 4 bytes, which only arises when len is 1..4; every other shortfall is "truncated frame", so operators see two messages for the same class of cut.
+nit: trailing-byte errors use corruptAt(sub, depth+1) while every other batch failure uses the holding frame's offset and depth, so a leftover byte after n frames is attributed to the sub-stream rather than the Batch frame.
+nit: Encode's per-frame ceil is len(out)+maxFrameLen+frameOverhead, so a long top-level stream grows by about 16 MiB of slack after the 1.25 clamp; correct and linear, but a multi-gigabyte log keeps that extra capacity until the caller drops the slice.

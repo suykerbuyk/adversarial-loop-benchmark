@@ -1,0 +1,12 @@
+# walcodec [walcodec.test]
+./walcodec_public_test.go:34:17: undefined: Record
+./walcodec_public_test.go:36:7: undefined: Put
+./walcodec_public_test.go:39:7: undefined: Delete
+./walcodec_public_test.go:47:20: undefined: Record
+./walcodec_public_test.go:63:12: undefined: Record
+./walcodec_public_test.go:64:3: undefined: Put
+./walcodec_public_test.go:65:3: undefined: Delete
+./walcodec_v2_public_test.go:43:18: undefined: Record
+./walcodec_v2_public_test.go:59:21: undefined: Record
+./walcodec_v2_public_test.go:83:27: undefined: Record
+./walcodec_public_test.go:65:3: too many errors

@@ -1,0 +1,60 @@
+package config // import "config"
+
+Package config computes an effective configuration by combining ordered layers.
+
+The caller supplies every layer as a map. Resolve does not read the environment,
+files, or the command line. Layer names denote precedence only.
+
+Resolve documents the presence rule, the legal keys, the panic conditions,
+and LogLevel validation.
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is the sentinel for an effective LogLevel outside the
+    legal set. Resolve wraps it; callers match with errors.Is.
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration after layer resolution.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines defaults, file, env, and flags (lowest to highest
+    precedence) into one Config.
+
+    A key present in a layer sets that field, including when the value is false,
+    0, or "". A key absent from a layer leaves the field unchanged. A field
+    presented by no layer keeps its Go zero value.
+
+    Only the keys "Verbose", "MaxRetries", "LogLevel", and "TimeoutSec" are
+    legal. Any other key panics. Unknown keys are not ignored. A present
+    value whose dynamic type is not the field's type (bool, int, string,
+    int respectively) panics, including when a higher layer later overrides that
+    field. Integer fields accept only dynamic type int (not int32, int64, uint,
+    float64, or a named integer type). LogLevel accepts only string, not a named
+    string type. Verbose accepts only bool. An untyped nil stored under a legal
+    key is present and panics as a wrong type.
+
+    Panic values are errors. The text names the layer and the key. A wrong type
+    also names the expected type and the value's dynamic type, and does not
+    print the value.
+
+    Validation runs only on the effective LogLevel. Legal values are "debug",
+    "info", "warn", "error", and "". Any other effective value returns
+    the resolved Config (invalid LogLevel included) and an error for which
+    errors.Is(err, ErrInvalidLogLevel) is true. The error quotes the effective
+    level so the caller can see which string was rejected. Overridden presented
+    levels are not validated. Verbose, MaxRetries, and TimeoutSec are not
+    validated.
+
+    A nil map is an empty layer: every field is absent. Resolve does not read
+    the environment, files, or the command line, and does not retain the maps
+    after return. The caller must not mutate the maps concurrently with Resolve.
+

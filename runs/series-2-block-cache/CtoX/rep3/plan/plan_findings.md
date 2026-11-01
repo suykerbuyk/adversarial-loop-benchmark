@@ -1,0 +1,3 @@
+minor: The plan adds undocumented restrictions that a Loader must not call `Close` on its own cache (self-join deadlocks) or `Get` its own key (self-single-flight deadlocks). The spec only requires a Loader to return promptly when its cache-scoped context is cancelled and otherwise promises concurrent-safe methods; callers can build these reentrant patterns from the public API. Documenting the restriction makes the hazard visible but does not satisfy the stated contract, so the implementation should either avoid the self-wait where feasible or clearly establish this as a necessary API precondition with the task owner.
+
+No blocker or major issue remains based on the spec and public tests reviewed. `plan/plan_rebuttal.md` was not present.

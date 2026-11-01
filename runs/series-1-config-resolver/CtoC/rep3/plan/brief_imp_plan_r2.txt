@@ -1,0 +1,6 @@
+ROLE: implementor. Read the task spec at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/CtoC/rep3/spec.md and the public tests at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/CtoC/rep3/instrument/resolve_public_test.go. If prior
+adversary findings exist at /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/CtoC/rep3/plan/plan_findings.md, read them and address each (fix the plan, or rebut the
+finding in writing). Produce a complete implementation plan: the public API, the internal data
+model, how each stated rule is satisfied, and the test approach. Write the plan to /home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/CtoC/rep3/plan/plan.md. If you
+are responding to findings, also write a point-by-point response (fixed / rebutted-with-reason) to
+/home/user/adv-imp-benchmark-runs/2026-10-30-claude-codex-grok/CtoC/rep3/plan/plan_rebuttal.md. Do not implement anything. Write nothing else.

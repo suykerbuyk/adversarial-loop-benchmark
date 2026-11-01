@@ -1,0 +1,54 @@
+package walcodec // import "walcodec"
+
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is the decode-time sentinel for a malformed stream. Callers
+    compare with errors.Is. Encode does not return ErrCorrupt.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes a version-2 stream: version byte, then one frame per record in
+    order. On any error it returns a nil buffer.
+
+
+TYPES
+
+type Batch struct {
+	Records []Record
+}
+    Batch is a nested framed sub-stream. Kind() returns 3.
+
+func (Batch) Kind() uint8
+    Kind returns the Batch type tag.
+
+type Delete struct {
+	Key string
+}
+    Delete is a key removal. Kind() returns 2.
+
+func (Delete) Kind() uint8
+    Kind returns the Delete type tag.
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put is a key/value write. Kind() returns 1.
+
+func (Put) Kind() uint8
+    Kind returns the Put type tag.
+
+type Record interface {
+	Kind() uint8
+}
+    Record is the log entry interface. Concrete types return their type tag from
+    Kind.
+
+func Decode(b []byte) ([]Record, error)
+    Decode parses a version-1 or version-2 stream back into records in stream
+    order.
+

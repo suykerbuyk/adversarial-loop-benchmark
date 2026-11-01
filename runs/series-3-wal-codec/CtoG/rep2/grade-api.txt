@@ -1,0 +1,100 @@
+package walcodec // import "walcodec"
+
+Package walcodec encodes and decodes a versioned write-ahead-log record stream.
+
+A stream is a single version byte followed by zero or more frames:
+
+    stream = version:u8 frame*
+    frame  = len:u32be type:u8 payload:[len-1] crc:u32be
+
+len counts the type byte and payload only; crc is CRC32-IEEE over type+payload
+and sits outside len. len is capped at 16 MiB at every depth.
+
+Payloads:
+
+    Put    = klen:u32be key[klen] vlen:u32be value[vlen]   (type 1)
+    Delete = klen:u32be key[klen]                           (type 2)
+    Batch  = n:u32be frame{n}                               (type 3)
+
+A Batch payload is a nested sub-stream of exactly n complete frames (each with
+its own len and crc) that must consume the payload exactly. Batches may nest.
+The top-level stream is depth 0; a Batch's sub-stream is one deeper than the
+stream holding the Batch; a sub-stream deeper than 8 is corrupt, so at most 8
+levels of Batch nesting are legal.
+
+Versions: Encode writes version 2. Decode accepts version 1 (Put and Delete
+only) and version 2 (Put, Delete and Batch); any other version is corrupt.
+
+VARIABLES
+
+var ErrCorrupt = errors.New("walcodec: corrupt stream")
+    ErrCorrupt is wrapped by every error Decode returns. Test with errors.Is.
+
+
+FUNCTIONS
+
+func Encode(recs []Record) ([]byte, error)
+    Encode writes recs, in order, as a version-2 stream.
+
+    Accepted records are Put, Delete and Batch, and non-nil pointers to them.
+    Encode never panics on bad input. It returns (nil, err) if any record at
+    any depth is a nil interface, a nil *Put, *Delete or *Batch, an unsupported
+    type, a Batch nested deeper than 8 levels, or would produce a frame (at
+    any depth) whose len exceeds 16 MiB. These errors describe caller input,
+    not stream corruption, so they do not wrap ErrCorrupt. Encode never emits a
+    stream that Decode would reject.
+
+    Each record is read exactly once. The caller must not modify recs,
+    or anything they point to, while Encode runs.
+
+
+TYPES
+
+type Batch struct{ Records []Record }
+    Batch groups Records into one frame whose payload is a nested framed
+    sub-stream. Its Kind is 3. Records may include Put, Delete and nested Batch
+    values, up to 8 levels of Batch nesting.
+
+    A decoded Batch always has a non-nil Records slice (length 0 when empty).
+
+func (Batch) Kind() uint8
+    Kind returns the wire type tag of a Batch (3).
+
+type Delete struct{ Key string }
+    Delete removes Key. Its Kind is 2.
+
+func (Delete) Kind() uint8
+    Kind returns the wire type tag of a Delete (2).
+
+type Put struct {
+	Key   string
+	Value []byte
+}
+    Put sets Key to Value. Its Kind is 1.
+
+    A nil Value and an empty Value encode identically; both decode to a non-nil,
+    length-0 slice.
+
+func (Put) Kind() uint8
+    Kind returns the wire type tag of a Put (1).
+
+type Record interface{ Kind() uint8 }
+    Record is one WAL entry. Kind returns its wire type tag.
+
+func Decode(b []byte) ([]Record, error)
+    Decode parses a stream produced by Encode. It accepts version 1 (Put and
+    Delete only) and version 2 (Put, Delete and Batch); any other version byte
+    is rejected before any frame is read. Every failure wraps ErrCorrupt (test
+    with errors.Is) and returns a nil slice; the first error at any depth
+    ends decoding. On success the result is non-nil (empty for a version-only
+    stream).
+
+    Decode is strict: it accepts only canonical streams. Each frame, at every
+    depth, is checked in this order: header present, len within the 16 MiB cap
+    (before any read of the body or any allocation), frame complete within its
+    enclosing stream or Batch payload, len non-zero, crc, then type tag and
+    payload. A Batch payload is then checked for: nesting depth (a sub-stream
+    deeper than 8 is corrupt), count n present, then exactly n inner frames
+    bounded by the Batch payload, then no trailing bytes. Returned records never
+    alias b.
+

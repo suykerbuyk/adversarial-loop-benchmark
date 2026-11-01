@@ -1,0 +1,3 @@
+# walcodec
+# [walcodec]
+vet: ./walcodec_public_test.go:34:17: undefined: Record

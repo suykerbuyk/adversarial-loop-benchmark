@@ -1,0 +1,2 @@
+minor: The delivered tests do not exercise several high-risk specified paths: cancellation of the last waiter while confirming the orphaned load is still cached, Close during an unresolved load (including a loader that returns after cancellation), and concurrent/idempotent Close while the first Close is joining. These paths appear correctly synchronized in the implementation, but dedicated regression coverage would protect the most subtle lifecycle guarantees.
+No blocker or major issue remains.

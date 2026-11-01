@@ -1,0 +1,30 @@
+package config // import "config"
+
+
+VARIABLES
+
+var ErrInvalidLogLevel = errors.New("config: invalid log level")
+    ErrInvalidLogLevel is returned when the effective LogLevel is not one of the
+    legal values: "debug", "info", "warn", "error", or "".
+
+
+TYPES
+
+type Config struct {
+	Verbose    bool
+	MaxRetries int
+	LogLevel   string
+	TimeoutSec int
+}
+    Config is the effective configuration after layer resolution.
+
+func Resolve(defaults, file, env, flags map[string]any) (Config, error)
+    Resolve combines four ordered layers into an effective Config. Precedence is
+    argument order, low to high: defaults, file, env, flags. The internal slice
+    of maps is the extension point for additional layers; this signature stays
+    fixed at four arguments. A nil map is an empty layer (every field absent).
+    A key present in a map sets that field, including zero values. A key absent
+    from a map leaves the field unchanged. A present value of the wrong Go
+    type for its key panics. Unknown keys panic. Validation runs only on the
+    effective LogLevel.
+
